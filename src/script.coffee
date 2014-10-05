@@ -5,6 +5,7 @@ $ ->
 			order: 	Todos.nextOrder()
 			done: 	false
 
+		# change state done - not done, and save 
 		toggle: ->
 			@save
 				done: not @get "done"
@@ -29,8 +30,6 @@ $ ->
 		# sorts collection by order
 		comparator: 'order'
 
-	# Collection of todo items
-	Todos = new TodoList
 
 	class TodoView extends Backbone.View
 
@@ -39,7 +38,7 @@ $ ->
 		template: _.template $('#item-template').html()
 
 		events:
-			"click .toggle":		"toggle"
+			"click .toggle":		"toggleDone"
 			"dblclick .view":		"edit"
 			"click a.destroy":	"clear"
 			"keypress .edit":		"updateOnEnter"
@@ -49,29 +48,29 @@ $ ->
 			@listenTo @model, 'change', @render
 			@listenTo @model, 'destroy', @remove
 
-		render: ->
+		render: =>
 			@$el.html @template(@model.toJSON)
 			@$el.toggleClass 'done', @model.get('done')
-			@input = $('.edit')
-			@
+			this.input = $('.edit')
+			return this
 
 		toggleDone: ->
 			@model.toggle()
 
-		edit: ->
-			@$el.addClass("editing")
+		edit: =>
+			this.$(@el).addClass("editing")
 			@input.focus()
 
-		close: ->
+		close: =>
 			value = @input.val()
 
 			if not value
 				@clear()
 			else
 				@model.save title: value	
-				@$el.removeClass 'editing'
+				this.$(@el).removeClass 'editing'
 
-		updateOnEnter: (e) ->
+		updateOnEnter: (e) =>
 			@close if e.keyCode is 13
 
 		clear: ->
@@ -91,7 +90,7 @@ $ ->
 			"click #clear-completed":		"clearCompleted"
 			"click #toggle-all":				"toggleAllComplete"
 
-		initialize: ->
+		initialize: =>
 			@input = @$('#new-todo')
 			@allCheckbox = @$('#toggle-all')[0]
 
@@ -105,7 +104,7 @@ $ ->
 			Todos.fetch()
 
 		# rerenders the statistics
-		render: ->
+		render: =>
 			done = Todos.done().length
 			remaining = Todos.remaining().length
 
@@ -121,11 +120,11 @@ $ ->
 
 			@allCheckbox.checked = not remaining
 
-		addOne: (todo) ->
+		addOne: (todo) =>
 			view = new TodoView model: todo
 			@$('#todo-list').append view.render().el
 
-		addAll: ->
+		addAll: =>
 			Todos.each @addOne, this
 
 		createOnEnter: (e) ->
@@ -143,6 +142,8 @@ $ ->
 			Todos.each (todo) ->
 				todo.save 'done': done
 
+
+	Todos = new TodoList
 	App = new AppView
 
 
