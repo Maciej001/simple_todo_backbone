@@ -20,7 +20,7 @@ $ ->
 
 		remaining: ->
 			@where
-				done: true
+				done: false
 
 		nextOrder: ->
 			return 1 if not @length # if this is first item
@@ -29,9 +29,166 @@ $ ->
 		# sorts collection by order
 		comparator: 'order'
 
+	# Collection of todo items
 	Todos = new TodoList
 
-	
+	class TodoView extends Backbone.View
+
+		tagName: 'li' 	# todo item is a li tag
+
+		template: _.template $('#item-template').html()
+
+		events:
+			"click .toggle":		"toggle"
+			"dblclick .view":		"edit"
+			"click a.destroy":	"clear"
+			"keypress .edit":		"updateOnEnter"
+			"blur .edit": 			"close"
+
+		initialize: ->
+			@listenTo @model, 'change', @render
+			@listenTo @model, 'destroy', @remove
+
+		render: ->
+			@$el.html @template(@model.toJSON)
+			@$el.toggleClass 'done', @model.get('done')
+			@input = $('.edit')
+			@
+
+		toggleDone: ->
+			@model.toggle()
+
+		edit: ->
+			@$el.addClass("editing")
+			@input.focus()
+
+		close: ->
+			value = @input.val()
+
+			if not value
+				@clear()
+			else
+				@model.save title: value	
+				@$el.removeClass 'editing'
+
+		updateOnEnter: (e) ->
+			@close if e.keyCode is 13
+
+		clear: ->
+			@model.destroy
+
+
+	# Application
+
+	class AppView extends Backbone.View
+
+		el: $('#todoapp')
+
+		statsTemplate: _.template $('#stats-template').html()
+
+		events:
+			"keypress #new-todo":				"createOnEnter"
+			"click #clear-completed":		"clearCompleted"
+			"click #toggle-all":				"toggleAllComplete"
+
+		initialize: ->
+			@input = @$('#new-todo')
+			@allCheckbox = @$('#toggle-all')[0]
+
+			@listenTo Todos, 'add', 	@addOne
+			@listenTo Todos, 'reset', @addAll
+			@listenTo Todos, 'all', 	@render
+
+			@footer = @$('footer')
+			@main = $('#main')
+
+			Todos.fetch()
+
+		# rerenders the statistics
+		render: ->
+			done = Todos.done().length
+			remaining = Todos.remaining().length
+
+			if Todos.length
+				@main.show()
+				@footer.show()
+				@footer.html @statsTemplate
+					done: done
+					remaining: remaining
+			else
+				@main.hide()
+				@footer.hide()
+
+			@allCheckbox.checked = not remaining
+
+		addOne: (todo) ->
+			view = new TodoView model: todo
+			@$('#todo-list').append view.render().el
+
+		addAll: ->
+			Todos.each @addOne, this
+
+		createOnEnter: (e) ->
+			return if e.keyCode is 13 or not @input.val()
+
+			Todos.create title: @input.val()
+			@input.val ''
+
+		clearCompleted: ->
+			_.invoke Todos.done(), 'destroy'
+			return false
+
+		toggleAllComplete: ->
+			done = @allCheckbox.checked
+			Todos.each (todo) ->
+				todo.save 'done': done
+
+	App = new AppView
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
